@@ -10,6 +10,26 @@
 # This include file implements the semantic checking for magics.
 # included from sem.nim
 
+proc semObjConstr(c: PContext, n: PNode, flags: TExprFlags; expectedType: PType = nil): PNode
+
+
+proc addDefaultFieldForNew(c: PContext, n: PNode): PNode =
+  result = n
+  let typ = result[1].typ # new(x)
+  if typ.skipTypes({tyGenericInst, tyAlias, tySink}).kind == tyRef and typ.skipTypes({tyGenericInst, tyAlias, tySink})[0].kind == tyObject:
+    var asgnExpr = newTree(nkObjConstr, newNodeIT(nkType, result[1].info, typ))
+    asgnExpr.typ = typ
+    var t = typ.skipTypes({tyGenericInst, tyAlias, tySink})[0]
+    while true:
+      asgnExpr.sons.add defaultFieldsForTheUninitialized(c, t.n)
+      let base = t[0]
+      if base == nil:
+        break
+      t = skipTypes(base, skipPtrs)
+
+    if asgnExpr.sons.len > 1:
+      result = newTree(nkAsgn, result[1], asgnExpr)
+
 proc semAddrArg(c: PContext; n: PNode; isUnsafeAddr = false): PNode =
   let x = semExprWithType(c, n)
   if x.kind == nkSym:
@@ -463,6 +483,13 @@ proc semPrivateAccess(c: PContext, n: PNode): PNode =
   c.currentScope.allowPrivateAccess.add t.sym
   result = newNodeIT(nkEmpty, n.info, getSysType(c.graph, n.info, tyVoid))
 
+proc checkDefault(c: PContext, n: PNode): PNode =
+  result = n
+  c.config.internalAssert result[1].typ.kind == tyTypeDesc
+  let constructed = result[1].typ.base
+  if constructed.requiresInit:
+    message(c.config, n.info, warnUnsafeDefault, typeToString(constructed))
+
 proc magicsAfterOverloadResolution(c: PContext, n: PNode,
                                    flags: TExprFlags; expectedType: PType = nil): PNode =
   ## This is the preferred code point to implement magics.
@@ -521,6 +548,8 @@ proc magicsAfterOverloadResolution(c: PContext, n: PNode,
       result = n
     else:
       result = plugin(c, n)
+  of mNew:
+    result = addDefaultFieldForNew(c, n)
   of mNewFinalize:
     # Make sure the finalizer procedure refers to a procedure
     if n[^1].kind == nkSym and n[^1].sym.kind notin {skProc, skFunc}:
@@ -572,11 +601,13 @@ proc magicsAfterOverloadResolution(c: PContext, n: PNode,
     if seqType.kind == tySequence and seqType.base.requiresInit:
       message(c.config, n.info, warnUnsafeSetLen, typeToString(seqType.base))
   of mDefault:
-    result = n
-    c.config.internalAssert result[1].typ.kind == tyTypeDesc
-    let constructed = result[1].typ.base
-    if constructed.requiresInit:
-      message(c.config, n.info, warnUnsafeDefault, typeToString(constructed))
+    result = checkDefault(c, n)
+    let typ = result[^1].typ.skipTypes({tyTypeDesc})
+    let defaultExpr = defaultNodeField(c, result[^1], typ)
+    if defaultExpr != nil:
+      result = defaultExpr
+  of mZeroDefault:
+    result = checkDefault(c, n)
   of mIsolate:
     if not checkIsolate(n[1]):
       localError(c.config, n.info, "expression cannot be isolated: " & $n[1])
