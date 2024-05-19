@@ -1337,10 +1337,28 @@ proc fsReadData(s: Stream, buffer: pointer, bufLen: int): int =
 proc fsReadDataStr(s: Stream, buffer: var string, slice: Slice[int]): int =
   result = readBuffer(FileStream(s).f, addr buffer[slice.a], slice.b + 1 - slice.a)
 
+proc c_fgetc(stream: File): cint {.
+  importc: "fgetc", header: "<stdio.h>".}
+proc c_ungetc(c: cint, f: File): cint {.
+  importc: "ungetc", header: "<stdio.h>".}
 proc fsPeekData(s: Stream, buffer: pointer, bufLen: int): int =
-  let pos = fsGetPosition(s)
-  defer: fsSetPosition(s, pos)
-  result = readBuffer(FileStream(s).f, buffer, bufLen)
+  if bufLen == 1:
+    var f = FileStream(s).f
+    let i = c_fgetc(f)
+    if i < 0:
+      # We do not raise EOFError to keep consistent with
+      # the behavior when `bufLen != 1`.
+      # Details: readBuffer calls C's fread,
+      # which, when meets EOF, won't change error flag in `FILE* f`,
+      # a.k.a `ferror(f)` still returns 0.
+      return 0
+    (cast[ptr c_char](buffer))[] = i.c_char
+    discard c_ungetc(i, f)
+    result = 1
+  else:
+    let pos = fsGetPosition(s)
+    defer: fsSetPosition(s, pos)
+    result = readBuffer(FileStream(s).f, buffer, bufLen)
 
 proc fsWriteData(s: Stream, buffer: pointer, bufLen: int) =
   if writeBuffer(FileStream(s).f, buffer, bufLen) != bufLen:
