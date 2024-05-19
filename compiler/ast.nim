@@ -36,6 +36,7 @@ type
     ccThisCall = "thiscall"         # thiscall (parameters are pushed right-to-left)
     ccClosure  = "closure"          # proc has a closure
     ccNoConvention = "noconv"       # needed for generating proper C procs sometimes
+    ccMember = "member"             # proc is a (cpp) member
 
   TNodeKinds* = set[TNodeKind]
 
@@ -487,7 +488,6 @@ type
     mUnaryPlusI, mBitnotI,
     mUnaryPlusF64, mUnaryMinusF64,
     mCharToStr, mBoolToStr,
-    mIntToStr, mInt64ToStr, mFloatToStr, # for compiling nimStdlibVersion < 1.5.1 (not bootstrapping)
     mCStrToStr,
     mStrToStr, mEnumToStr,
     mAnd, mOr,
@@ -504,7 +504,7 @@ type
     mSwap, mIsNil, mArrToSeq, mOpenArrayToSeq,
     mNewString, mNewStringOfCap, mParseBiggestFloat,
     mMove, mEnsureMove, mWasMoved, mDup, mDestroy, mTrace,
-    mDefault, mUnown, mFinished, mIsolate, mAccessEnv, mAccessTypeField, mReset,
+    mDefault, mUnown, mFinished, mIsolate, mAccessEnv, mAccessTypeField,
     mArray, mOpenArray, mRange, mSet, mSeq, mVarargs,
     mRef, mPtr, mVar, mDistinct, mVoid, mTuple,
     mOrdinal, mIterableType,
@@ -557,7 +557,6 @@ const
     mUnaryMinusI, mUnaryMinusI64, mAbsI, mNot, mUnaryPlusI, mBitnotI,
     mUnaryPlusF64, mUnaryMinusF64,
     mCharToStr, mBoolToStr,
-    mIntToStr, mInt64ToStr, mFloatToStr,
     mCStrToStr,
     mStrToStr, mEnumToStr,
     mAnd, mOr,
