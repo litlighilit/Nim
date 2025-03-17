@@ -9,7 +9,7 @@
 
 ## Layouter for nimpretty.
 
-import idents, lexer, ast, lineinfos, llstream, options, msgs, strutils, pathutils
+import idents, lexer, ast, lineinfos, llstream, options, msgs, strutils, pathutils, tokTypes
 
 const
   MinLineLen = 15
@@ -320,19 +320,6 @@ proc removeSpaces(em: var Emitter) =
     setLen(em.tokens, em.tokens.len-1)
     setLen(em.kinds, em.kinds.len-1)
     dec em.col, tokenLen
-
-
-const
-  openPars = {tkParLe, tkParDotLe,
-              tkBracketLe, tkBracketDotLe, tkBracketLeColon,
-              tkCurlyDotLe, tkCurlyLe}
-  closedPars = {tkParRi, tkParDotRi,
-                tkBracketRi, tkBracketDotRi,
-                tkCurlyDotRi, tkCurlyRi}
-
-  splitters = openPars + {tkComma, tkSemiColon} # do not add 'tkColon' here!
-  oprSet = {tkOpr, tkDiv, tkMod, tkShl, tkShr, tkIn, tkNotin, tkIs,
-            tkIsnot, tkNot, tkOf, tkAs, tkFrom, tkDotDot, tkAnd, tkOr, tkXor}
 
 template goodCol(col): bool = col >= em.maxLineLen div 2
 

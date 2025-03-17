@@ -10,7 +10,7 @@
 ## Low-level streams for high performance.
 
 import
-  pathutils
+  pathutils, tokTypes, tokTypeChars
 import std/strutils
 when defined(nimPreviewSlimSystem):
   import std/syncio
@@ -83,16 +83,11 @@ proc endsWith*(x: string, s: set[char]): bool =
     result = false
 
 const
-  LineContinuationOprs = {'+', '-', '*', '/', '\\', '<', '>', '!', '?', '^',
-                          '|', '%', '&', '$', '@', '~', ','}
-  AdditionalLineContinuationOprs = {'#', ':', '='}
-  LineContinuationTokens = [
-    "let", "var", "const", "type",  # section
-    "object", "tuple",
-    # from ./layouter.oprSet
-    "div", "mod", "shl", "shr", "in", "notin", "is",
-    "isnot", "not", "of", "as", "from", "..", "and", "or", "xor", 
-  ]  # must be all `nimIdentNormalized`-ed
+  SectionStartTokens = {
+    tkLet, tkVar, tkConst, tkType,  # section
+    tkObject, tkTuple,  # ObjectTy, TupleTy
+  }
+  LineContinuationTokens = SectionStartTokens + openPars + noncharOprset
 
 proc eqIdent(a, bNormalized: string): bool =
   a.nimIdentNormalize == bNormalized
@@ -124,17 +119,17 @@ proc containsObjectOf(x: string): bool =
 proc endsWithLineContinuationToken(x: string): bool =
   result = false
   for tok in LineContinuationTokens:
-    if x.endsWithIdent(tok):
+    if x.endsWithIdent($tok):
       return true
   result = x.containsObjectOf
 
 proc endsWithOpr*(x: string): bool =
-  result = x.endsWith(LineContinuationOprs)
+  result = x.endsWith(OpChars)
 
 proc continueLine(line: string, inTripleString: bool): bool {.inline.} =
   result = inTripleString or line.len > 0 and (
         line[0] == ' ' or
-        line.endsWith(LineContinuationOprs+AdditionalLineContinuationOprs) or
+        line.endsWithOpr() or
         line.endsWithLineContinuationToken()
       )
 
