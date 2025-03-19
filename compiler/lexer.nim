@@ -17,21 +17,21 @@
 
 import
   options, msgs, platform, idents, nimlexbase, llstream,
-  wordrecg, lineinfos, pathutils, tokTypes, tokTypeChars
+  wordrecg, lineinfos, pathutils, toktypes, toktypechars
 
 import std/[hashes, parseutils, strutils]
 
 when defined(nimPreviewSlimSystem):
   import std/[assertions, formatfloat]
 
-export tokTypeChars
+export toktypechars
 
 const
   UnaryMinusWhitelist = {' ', '\t', '\n', '\r', ',', ';', '(', '[', '{'}
 
 # don't forget to update the 'highlite' module if these charsets should change
 
-export tokTypes.TokType, tokTypes.TokTypes
+export toktypes.TokType, toktypes.TokTypes
 const
   weakTokens = {tkComma, tkSemiColon, tkColon,
                 tkParRi, tkParDotRi, tkBracketRi, tkBracketDotRi,

@@ -10,7 +10,7 @@
 ## Low-level streams for high performance.
 
 import
-  pathutils, tokTypes, tokTypeChars
+  pathutils, toktypes, toktypechars
 import std/strutils
 when defined(nimPreviewSlimSystem):
   import std/syncio
